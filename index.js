@@ -21,14 +21,21 @@ app.post("/participants", (req, res) => {
     })
     .toArray()
     .then((alreadyExists) => {
-      console.log(alreadyExists); // array de usuários
-      if (alreadyExists.length===0) {
+      console.log(alreadyExists); // users array
+      if (alreadyExists.length === 0) {
         if (typeof name === "string" && name) {
           db.collection("users").insertOne({
             name: name,
             LastStatus: Date.now(),
           });
           res.sendStatus(201);
+          db.collection("messages").insertOne({
+            from: name,
+            to: "Todos",
+            text: "entra na sala...",
+            type: "status",
+            time: "00:00:06",
+          });
         } else {
           res.sendStatus(402);
         }
@@ -39,13 +46,22 @@ app.post("/participants", (req, res) => {
 });
 
 app.get("/participants", (req, res) => {
-  // buscando usuários
+  // searching for users
   db.collection("users")
     .find()
     .toArray()
     .then((users) => {
-      res.send(users); // array de usuários
+      res.send(users); // users array
     });
 });
-
+app.get("/messages", (req, res) => {
+  const limit = req.query.limit;
+  // searching for messages
+  db.collection("messages")
+    .find()
+    .toArray()
+    .then((messages) => {
+      res.send(messages); // messages array
+    });
+});
 app.listen(5000);
