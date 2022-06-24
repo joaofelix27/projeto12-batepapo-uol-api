@@ -22,6 +22,26 @@ let db;
 mongoClient.connect().then(() => {
   db = mongoClient.db("banco_de_dados_uol");
 });
+
+setInterval(async () => {
+  const usersColection=db.collection("users")
+  const userList = await usersColection.find().toArray();
+  for (let i=0;i<userList.length;i++){
+    const userName=userList[i].name
+    const intervalo= Date.now()-userList[i].LastStatus
+    if (intervalo>10000) {
+      await usersColection.deleteOne({ name: userName  })
+      const now=dayjs()
+      await db.collection("messages").insertOne({
+        from: userName,
+        to: "Todos",
+        text: "sai da sala...",
+        type: "status",
+        time: now.format("HH:mm:ss"),
+      });
+    }
+  }
+}, 15000);
 app.post("/participants", async (req, res) => {
   let { name } = req.body;
   const validation = userSchema.validate(req.body, { abortEarly: true });
