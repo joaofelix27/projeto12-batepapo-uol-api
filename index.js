@@ -12,6 +12,11 @@ app.use(cors());
 const userSchema = joi.object({
   name: joi.string().alphanum().required(),
 });
+const messageSchema = joi.object({
+  to: joi.string().alphanum().required(),
+  text: joi.string().alphanum().required(),
+  type: joi.string().valid("message","private_message").required()
+});
 
 const mongoClient = new MongoClient("mongodb://localhost:27017");
 let db;
@@ -52,23 +57,44 @@ app.post("/participants", async (req, res) => {
    }
 });
 
-app.get("/participants", (req, res) => {
+app.get("/participants", async(req, res) => {
   // searching for users
-  db.collection("users")
-    .find()
-    .toArray()
-    .then((users) => {
-      res.send(users); // users array
-    });
+  const users= await db.collection("users").find().toArray()
+  res.send(users);
 });
-app.get("/messages", (req, res) => {
+app.post("/messages", async(req, res) => {
   const limit = req.query.limit;
   // searching for messages
-  db.collection("messages")
-    .find()
-    .toArray()
-    .then((messages) => {
-      res.send(messages); // messages array
-    });
+  const messages= await db.collection("messages").find().toArray()
+  res.send(messages); // messages array
 });
+app.post("/messages", async (req,res) =>{
+  const user= req.headers("user")
+  const {to,text,type}=req.body
+  const validation = messageSchema.validate(req.body, { abortEarly: true });
+  const activeUser = await db.collection("users").find({ name: user }) .toArray();
+  if (validation.error || activeUser.length===0) {
+    res.sendStatus(422);
+    return;
+  } 
+  try {
+      let now=dayjs()
+     await db.collection("users").insertOne({
+       name: name,
+       LastStatus: Date.now(),
+     });
+    await db.collection("messages").insertOne({
+       from: user,
+       to: to,
+       text: text,
+       type: type,
+       time: now.format("HH:mm:ss"),
+     });
+     res.sendStatus(201);
+   } catch (error) {
+    console.error(error);
+    res.sendStatus(500);
+   }
+
+})
 app.listen(5000);
